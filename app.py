@@ -23,9 +23,29 @@ def allowed_file(filename, file_type):
     return False
 
 def derive_name_from_excel_filename(filename):
-    name = re.sub(r"\.(xlsx|xls)$", "", filename, flags=re.IGNORECASE)
-    name = re.sub(r"(?i)\b(Expenses|Report)\b", "", name)
-    return name.replace("_", "").replace("-", "").strip().upper()
+    # This function attempts to extract a person's name from the Excel file name.
+    # It's a heuristic and may need adjustment for different naming conventions.
+
+    # 1. Remove the timestamp prefix if it exists (e.g., "20251021_122023_")
+    name = re.sub(r"^\d{8}_\d{6}_", "", filename)
+
+    # 2. Remove the file extension
+    name = re.sub(r"\.(xlsx|xls)$", "", name, flags=re.IGNORECASE)
+
+    # 3. Remove common keywords like "Expenses" or "Report"
+    name = re.sub(r"(?i)\s*\b(Expenses|Report)\b\s*", "", name)
+
+    # 4. Insert a space before a capital letter in a camelCase-like name (e.g., "JanetS" -> "Janet S")
+    name = re.sub(r"([a-z])([A-Z])", r"\1 \2", name)
+
+    # 5. Replace common separators with spaces
+    name = name.replace("_", " ").replace("-", " ")
+
+    # 6. Remove any remaining non-alphanumeric characters except spaces (e.g., commas)
+    name = re.sub(r"[^a-zA-Z0-9\s]", "", name)
+
+    # 7. Trim whitespace from the ends and handle multiple spaces
+    return " ".join(name.split())
 
 def read_pdf_text(pdf_path):
     try:
@@ -51,19 +71,53 @@ def find_cardholder_sections(pdf_text):
     return sorted(sections, key=lambda x: x[1])
 
 def select_target_section_name(target, available):
-    t = target.strip().upper()
-    for name, _ in available:
-        if name.upper() == t:
+    # Normalize the target name derived from the filename
+    target_norm = target.upper()
+    target_tokens = set(target_norm.split())
+
+    # Normalize available names from the PDF and try for an exact match first
+    available_norm = []
+    for name, pos in available:
+        name_norm = name.strip().upper()
+        if name_norm == target_norm:
+            # Exact match is the best possible outcome
             return name
-    first = t[:-1] if len(t) >= 2 and t[-1].isalpha() and ' ' not in t else t
-    last = t[-1] if len(t) >= 2 and t[-1].isalpha() and ' ' not in t else None
+        available_norm.append({'original': name, 'normalized': name_norm, 'pos': pos})
+
+    # If no exact match, proceed with a scoring mechanism
     candidates = []
-    for name, _ in available:
-        name_up = name.upper()
-        if first in name_up:
-            score = 1 + (1 if last and re.search(rf"\b{last}[A-Z]*\b", name_up) else 0) + (0.5 if name_up.startswith(first) else 0)
-            candidates.append((score, name))
-    return max(candidates, key=lambda x: x[0])[1] if candidates else (available[0][0] if available else None)
+    for item in available_norm:
+        name_norm = item['normalized']
+        name_tokens = set(name_norm.split())
+
+        # Scoring logic
+        score = 0
+        # 1. Reward for full token matches
+        score += len(target_tokens.intersection(name_tokens)) * 10
+
+        # 2. Reward for being a substring (e.g., 'JOSE' in 'JOSEPH')
+        if target_norm in name_norm or name_norm in target_norm:
+            score += 5
+
+        # 3. Reward for initial matches (e.g., 'JanetS' vs 'JANET S')
+        # This helps with cases where last name initial is attached.
+        for t_token in target_tokens:
+            for n_token in name_tokens:
+                if t_token.startswith(n_token) or n_token.startswith(t_token):
+                    score += 2
+        
+        if score > 0:
+            candidates.append((score, item['original']))
+
+    # Return the best candidate, or the first available name as a fallback
+    if candidates:
+        return max(candidates, key=lambda x: x[0])[1]
+    elif available:
+        # Fallback to the first name found if no match at all
+        return available[0][0]
+    else:
+        # No names found in PDF
+        return None
 
 def extract_transactions_for_name(pdf_text, target_name, sections):
     target_pos = next((pos for name, pos in sections if name == target_name), None)

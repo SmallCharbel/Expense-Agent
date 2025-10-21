@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Comparison Results</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #00c4ff 0%, #008cff 100%);
+            min-height: 100vh;
+            padding: 40px 20px;
+        }
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            padding: 50px;
+            text-align: center;
+        }
+        .logo {
+            max-width: 200px;
+            margin-bottom: 30px;
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 30px;
+            font-size: 28px;
+            text-align: center;
+        }
+        .summary {
+            background: #f8f9fa;
+            padding: 30px;
+            border-radius: 15px;
+            margin-bottom: 30px;
+            text-align: left;
+        }
+        .summary-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 12px 0;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        .summary-row:last-child {
+            border-bottom: none;
+        }
+        .summary-label {
+            color: #666;
+            font-weight: 600;
+        }
+        .summary-value {
+            color: #333;
+            font-weight: 700;
+        }
+        .status {
+            text-align: center;
+            padding: 25px;
+            border-radius: 15px;
+            margin: 30px 0;
+            font-size: 20px;
+            font-weight: 700;
+        }
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+        }
+        .status.warning {
+            background: #fff3cd;
+            color: #856404;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 30px 0;
+            text-align: left;
+        }
+        th {
+            background: #00c4ff;
+            color: white;
+            padding: 15px;
+            text-align: left;
+            font-weight: 600;
+        }
+        td {
+            padding: 15px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        tr:hover {
+            background: #f8f9fa;
+        }
+        .total-row {
+            background: #f8f9fa;
+            font-weight: 700;
+            font-size: 18px;
+        }
+        .btn-container {
+            text-align: center;
+            margin-top: 40px;
+        }
+        .btn {
+            display: inline-block;
+            padding: 15px 40px;
+            background: linear-gradient(135deg, #00c4ff 0%, #008cff 100%);
+            color: white;
+            text-decoration: none;
+            border-radius: 10px;
+            font-weight: 600;
+            transition: transform 0.2s ease;
+        }
+        .btn:hover {
+            transform: translateY(-2px);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <img src="/static/ampio-Logo-Tagline-Finals.png" alt="Logo" class="logo">
+        <h1>📊 Expense Comparison Results</h1>
+        
+        <div class="summary">
+            <div class="summary-row">
+                <span class="summary-label">Cardholder:</span>
+                <span class="summary-value">{{ results.cardholder }}</span>
+            </div>
+            <div class="summary-row">
+                <span class="summary-label">Statement Period:</span>
+                <span class="summary-value">{{ results.period_start }} - {{ results.period_end }}</span>
+            </div>
+            <div class="summary-row">
+                <span class="summary-label">PDF Transactions:</span>
+                <span class="summary-value">{{ results.pdf_count }} (${{ results.pdf_total }})</span>
+            </div>
+            <div class="summary-row">
+                <span class="summary-label">Excel Transactions:</span>
+                <span class="summary-value">{{ results.excel_count }} (${{ results.excel_total }})</span>
+            </div>
+            <div class="summary-row">
+                <span class="summary-label">Successfully Matched:</span>
+                <span class="summary-value">{{ results.matched }}</span>
+            </div>
+        </div>
+
+        {% if results.missing_count == 0 %}
+            <div class="status success">
+                ✅ All Expenses Submitted Successfully!<br>
+                <small style="font-size: 14px; font-weight: normal;">No action required</small>
+            </div>
+        {% else %}
+            <div class="status warning">
+                ⚠️ {{ results.missing_count }} Expense(s) Need Submission<br>
+                <small style="font-size: 14px; font-weight: normal;">Total: ${{ results.missing_total }}</small>
+            </div>
+
+            <h2 style="margin: 30px 0 20px 0; color: #333; text-align: left;">Missing from Excel:</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Merchant</th>
+                        <th>Amount</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for txn in results.missing_transactions %}
+                    <tr>
+                        <td>{{ txn.date }}</td>
+                        <td>{{ txn.merchant }}</td>
+                        <td>${{ "%.2f"|format(txn.amount) }}</td>
+                    </tr>
+                    {% endfor %}
+                    <tr class="total-row">
+                        <td colspan="2">TOTAL MISSING</td>
+                        <td>${{ results.missing_total }}</td>
+                    </tr>
+                </tbody>
+            </table>
+        {% endif %}
+
+        <div class="btn-container">
+            <a href="/" class="btn">Compare Another Report</a>
+        </div>
+    </div>
+</body>
+</html>

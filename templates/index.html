@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Expense Comparator</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #00c4ff 0%, #008cff 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            padding: 50px;
+            max-width: 600px;
+            width: 100%;
+            text-align: center;
+        }
+        .logo {
+            max-width: 200px;
+            margin-bottom: 30px;
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 32px;
+        }
+        .subtitle {
+            color: #666;
+            margin-bottom: 40px;
+            font-size: 16px;
+        }
+        .upload-section {
+            margin-bottom: 30px;
+        }
+        label {
+            display: block;
+            color: #555;
+            font-weight: 600;
+            margin-bottom: 10px;
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            text-align: left;
+        }
+        .file-input-wrapper {
+            position: relative;
+            overflow: hidden;
+            display: inline-block;
+            width: 100%;
+        }
+        .file-input-wrapper input[type=file] {
+            position: absolute;
+            left: -9999px;
+        }
+        .file-input-label {
+            display: block;
+            padding: 20px;
+            background: #f8f9fa;
+            border: 2px dashed #ddd;
+            border-radius: 10px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            color: #666;
+        }
+        .file-input-label:hover {
+            background: #e9ecef;
+            border-color: #00c4ff;
+        }
+        .file-input-label.has-file {
+            background: #e0f7ff;
+            border-color: #00c4ff;
+            color: #008cff;
+        }
+        button {
+            width: 100%;
+            padding: 18px;
+            background: linear-gradient(135deg, #00c4ff 0%, #008cff 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 18px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            margin-top: 20px;
+        }
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(0, 196, 255, 0.4);
+        }
+        button:active {
+            transform: translateY(0);
+        }
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+        .icon {
+            font-size: 40px;
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <img src="/static/ampio-Logo-Tagline-Finals.png" alt="Logo" class="logo">
+        <h1>💼 Expense Comparator</h1>
+        <p class="subtitle">Upload your PDF statement and Excel report to find missing expenses</p>
+        
+        <form action="/compare" method="post" enctype="multipart/form-data" id="uploadForm">
+            <div class="upload-section">
+                <label for="pdf">PDF Credit Card Statement</label>
+                <div class="file-input-wrapper">
+                    <input type="file" name="pdf" id="pdf" accept=".pdf" required>
+                    <label for="pdf" class="file-input-label" id="pdfLabel">
+                        <div class="icon">📄</div>
+                        <div>Click to select PDF file</div>
+                    </label>
+                </div>
+            </div>
+            
+            <div class="upload-section">
+                <label for="excel">Excel Expense Report</label>
+                <div class="file-input-wrapper">
+                    <input type="file" name="excel" id="excel" accept=".xlsx,.xls" required>
+                    <label for="excel" class="file-input-label" id="excelLabel">
+                        <div class="icon">📊</div>
+                        <div>Click to select Excel file</div>
+                    </label>
+                </div>
+            </div>
+            
+            <button type="submit" id="compareBtn">Compare Files</button>
+        </form>
+    </div>
+
+    <script>
+        const pdfInput = document.getElementById('pdf');
+        const excelInput = document.getElementById('excel');
+        const pdfLabel = document.getElementById('pdfLabel');
+        const excelLabel = document.getElementById('excelLabel');
+        const compareBtn = document.getElementById('compareBtn');
+
+        pdfInput.addEventListener('change', function(e) {
+            if (e.target.files.length > 0) {
+                pdfLabel.innerHTML = `<div class="icon">✅</div><div>${e.target.files[0].name}</div>`;
+                pdfLabel.classList.add('has-file');
+            }
+        });
+
+        excelInput.addEventListener('change', function(e) {
+            if (e.target.files.length > 0) {
+                excelLabel.innerHTML = `<div class="icon">✅</div><div>${e.target.files[0].name}</div>`;
+                excelLabel.classList.add('has-file');
+            }
+        });
+
+        document.getElementById('uploadForm').addEventListener('submit', function() {
+            compareBtn.textContent = 'Processing...';
+            compareBtn.disabled = true;
+        });
+    </script>
+</body>
+</html>

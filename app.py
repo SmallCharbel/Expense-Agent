@@ -123,12 +123,45 @@ def extract_transactions_for_name(pdf_text, target_name, sections):
     target_pos = next((pos for name, pos in sections if name == target_name), None)
     if not target_pos:
         return []
+
+    # 1. Find the start of the next cardholder's section
     positions = sorted([pos for _, pos in sections])
-    next_pos = next((p for p in positions if p > target_pos), len(pdf_text))
+    next_cardholder_pos = next((p for p in positions if p > target_pos), None)
+
+    # 2. Find the start of a potential summary section after the current cardholder
+    # These keywords mark the end of transactions. We look for lines starting with them.
+    summary_keywords = [
+        "FEES", "INTEREST CHARGED", "ACCOUNT SUMMARY", 
+        "PAYMENT INFORMATION", "LATE FEE", "TOTAL CREDIT", "TOTAL DEBIT",
+        "ABOUT TRAILING INTEREST"
+    ]
+    
+    text_after_target = pdf_text[target_pos:]
+    summary_pos = -1
+
+    # Search for the first occurrence of any of these keywords at the beginning of a line.
+    for keyword in summary_keywords:
+        # The regex looks for the keyword at the start of a line, ignoring leading whitespace.
+        match = re.search(r"^\s*" + re.escape(keyword), text_after_target, re.IGNORECASE | re.MULTILINE)
+        if match:
+            # Adjust position to be relative to the full pdf_text
+            actual_pos = target_pos + match.start()
+            if summary_pos == -1 or actual_pos < summary_pos:
+                summary_pos = actual_pos
+
+    # 3. Determine the end of the section (next_pos)
+    # It's the earliest of: next cardholder's start, summary section start, or end of document.
+    end_positions = [pos for pos in [next_cardholder_pos, summary_pos] if pos is not None and pos > target_pos]
+    
+    if end_positions:
+        next_pos = min(end_positions)
+    else:
+        next_pos = len(pdf_text) # Fallback to end of document
+
     section_text = pdf_text[target_pos:next_pos]
     
     transactions = []
-    for chunk in re.split(r"[\u25CA\u2B27\u2B25\u25C6\u25C7\u29EB\u2B26\u2B29|⧫]+", section_text):
+    for chunk in re.split(r"[\u25CA\u2B27\u2B25\u25C6\u25C7\u29EB\u2B26\u2B29|\u29eb]+", section_text):
         ch = ' '.join(chunk.split())
         m_date = re.search(r"(\d{2}/\d{2}/\d{2})", ch)
         m_amt = list(re.finditer(r"\$([0-9,]+\.[0-9]{2})", ch))
